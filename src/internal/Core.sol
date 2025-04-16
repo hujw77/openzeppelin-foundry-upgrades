@@ -21,6 +21,8 @@ import {IUpgradeableBeacon} from "./interfaces/IUpgradeableBeacon.sol";
  * WARNING: DO NOT USE DIRECTLY. Use Upgrades.sol, LegacyUpgrades.sol or Defender.sol instead.
  */
 library Core {
+    error CREATE2FactoryNotDeployed();
+    address constant CREATE2_ADDR = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
     /**
      * @dev Upgrades a proxy to a new implementation contract. Only supported for UUPS or transparent proxies.
      *
@@ -447,13 +449,18 @@ library Core {
         if (opts.defender.useDefenderDeploy) {
             return DefenderDeploy.deploy(contractName, constructorData, opts.defender);
         } else {
-            return _deploy(contractName, constructorData);
+            return _deploy(contractName, constructorData, opts.create2, opts.salt);
         }
     }
 
-    function _deploy(string memory contractName, bytes memory constructorData) private returns (address) {
+    function _deploy(string memory contractName, bytes memory constructorData, bool create2, bytes32 salt) private returns (address) {
         bytes memory creationCode = Vm(Utils.CHEATCODE_ADDRESS).getCode(contractName);
-        address deployedAddress = _deployFromBytecode(abi.encodePacked(creationCode, constructorData));
+        address deployedAddress ;
+		if (create2) {
+			deployedAddress = _deploy2(salt, abi.encodePacked(creationCode, constructorData));
+		} else {
+			deployedAddress = _deployFromBytecode(abi.encodePacked(creationCode, constructorData));
+		}
         if (deployedAddress == address(0)) {
             revert(
                 string(
@@ -477,5 +484,12 @@ library Core {
             addr := create(0, add(bytecode, 32), mload(bytecode))
         }
         return addr;
+    }
+
+    function _deploy2(bytes32 salt, bytes memory initCode) internal returns (address) {
+        if (CREATE2_ADDR.code.length == 0) revert CREATE2FactoryNotDeployed();
+        bytes memory data = bytes.concat(salt, initCode);
+        (, bytes memory addr) = CREATE2_ADDR.call(data);
+        return address(uint160(bytes20(addr)));
     }
 }

@@ -65,7 +65,17 @@ struct Options {
     /*
      * Options for OpenZeppelin Defender deployments.
      */
+
     DefenderOptions defender;
+    /*
+     * If this is not set, deployments will be performed using the CREATE opcode.
+     * If this is set, deployments will be performed using the CREATE2 opcode with the provided salt.
+     * Note that deployments using a Safe are done using CREATE2 and require a salt.
+     *
+     * WARNING: CREATE2 affects `msg.sender` behavior. See https://docs.openzeppelin.com/defender/v2/tutorial/deploy#deploy-caveat for more information.
+     */
+    bytes32 salt;
+	bool create2;
 }
 
 /**
