@@ -457,7 +457,7 @@ library Core {
         bytes memory creationCode = Vm(Utils.CHEATCODE_ADDRESS).getCode(contractName);
         address deployedAddress ;
 		if (create2) {
-			deployedAddress = _deploy2(salt, abi.encodePacked(creationCode));
+			deployedAddress = _deploy2(salt, abi.encodePacked(creationCode, constructorData));
 		} else {
 			deployedAddress = _deployFromBytecode(abi.encodePacked(creationCode, constructorData));
 		}
